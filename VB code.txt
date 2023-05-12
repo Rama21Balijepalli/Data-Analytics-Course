@@ -1,0 +1,201 @@
+Sub AllStocksAnalysisRefactored()
+    Dim startTime As Single
+    Dim endTime  As Single
+
+    yearValue = InputBox("What year would you like to run the analysis on?")
+    MsgBox (yearValue)
+ 
+    Worksheets(yearValue).Activate
+    startTime = Timer
+         
+    'Worksheets("AllStocksAnalysis").Range("A1").Value = "All Stocks (" + yearValue + ")"
+    'Create a header row
+       
+       Worksheets(yearValue).Range("i1").Value = "Ticker"
+       Worksheets(yearValue).Range("j1").Value = "Yearly Change"
+       Worksheets(yearValue).Range("k1").Value = "Percentage Change"
+       Worksheets(yearValue).Range("l1").Value = "Total Stock Volume"
+ 
+
+   ' Copy the unique values of the Tickers in Column i
+   'Range(Trim("A2:A1000000")).AdvancedFilter Action:=xlFilterCopy, CopyToRange:=Range("i2:i10000"), Unique:=True
+   
+  
+ 
+   
+       
+    'Get the number of rows to loop over
+    RowCount = Worksheets(yearValue).Range("A2").End(xlDown).Row - 1 'Worksheets(yearValue).Rows.Count.End(xlDown)
+    MsgBox ("Row count:" & RowCount)
+    
+    
+   '  ActiveSheet.Range("A2:A" & RowCount).AdvancedFilter Action:=xlFilterCopy, CopyToRange:=ActiveSheet.Range("I2"), Unique:=True
+   
+   
+   
+   
+   'Trim the extra spaces
+   
+    Dim MyRange As Range
+    Set MyRange = Range("A2:A" & RowCount)
+  
+    For Each cell In MyRange
+    cell.Value = WorksheetFunction.Trim(cell)
+    Next
+   
+   
+   
+   
+   Range("A2:A" & RowCount).AdvancedFilter Action:=xlFilterCopy, CopyToRange:=ActiveSheet.Range("I2"), Unique:=True
+   
+   
+    '1a) Create a ticker Index
+        Dim tickerindex As Integer
+        tickerindex = 0
+
+    '1b) Create three output arrays
+        
+
+        Dim tickerCount As Integer
+                
+        'Get the unique value count of tickers
+        tickerCount = Worksheets(yearValue).Range("I2").End(xlDown).Row - 1
+         MsgBox ("Ticker Count :" & tickerCount)
+         
+                 
+        Dim tickerStartingPrices() As Single
+        Dim tickerEndingPrices() As Single
+      
+          Dim tickers() As String
+          Dim tickerValue()  As Single
+          Dim tickerReturn() As Single
+          Dim tickervolume() As Long
+          
+          ReDim tickers(tickerCount)
+          ReDim tickerValue(tickerCount)
+          ReDim tickerReturn(tickerCount)
+          ReDim tickervolume(tickerCount)
+          ReDim tickerStartingPrices(tickerCount)
+          ReDim tickerEndingPrices(tickerCount)
+       
+    ''2a) Create a for loop to initialize the tickerVolumes to zero.
+   
+       For tickerindex = 0 To tickerCount
+       
+       tickers(tickerindex) = Worksheets(yearValue).Range("I" & tickerindex + 2).Value
+       
+           ' tickervolume(tickerindex) = 0
+           ' Worksheets(yearValue).Range("A" & tickerindex + 4).Value = tickers(tickerindex)
+         
+        Next
+   
+        'Reset ticker Index to 0
+        tickerindex = 0
+     
+     ' Declare and initialize varaible to hold the index for first and last row of a ticker
+        'Dim cnt_first, cnt_last As Integer
+        cnt_first = 0
+       
+        '2b) Loop over all the rows in the spreadsheet.
+        
+        For i = 2 To RowCount
+   
+        '3a) Increase volume for current ticker
+       
+            If Cells(i, 9).Value = tickers(tickerindex) Then
+   
+                tickervolume(tickerindex) = tickervolume(tickerindex) + Cells(i, 7).Value
+       
+            Else
+            ' Move to the next ticker and reintitilize the tickervolume
+                tickerindex = tickerindex + 1
+                tickervolume(tickerindex) = 0
+                 
+                If Cells(i, 9).Value = tickers(tickerindex) Then
+                tickervolume(tickerindex) = tickervolume(tickerindex) + Cells(i, 7).Value
+               
+                End If
+            End If
+               
+            '3b) Check if the current row is the first row with the selected tickerIndex.
+       
+                'cnt_first = WorksheetFunction.Match(tickers(tickerindex), Range("A1:A" & RowCount), 0)
+                cnt_first = Application.Match(tickers(tickerindex), Range("A1:A" & RowCount), 0)
+                tickerStartingPrices(tickerindex) = CSng(Cells(cnt_first, 6).Value)
+       
+            '3c) check if the current row is the last row with the selected ticker
+               Dim a, b As Integer
+               a = Application.Match(tickers(tickerindex), Range("A1:A" & RowCount), 0)
+               b = Application.CountIf(Range("A1:A" & RowCount), tickers(tickerindex)) - 1
+           
+              'cnt_last = WorksheetFunction.Match(tickers(tickerindex), Range("A1:A" & RowCount), 0) + (WorksheetFunction.CountIf(Range("A1:A" & RowCount), tickers(tickerindex)) - 1)
+              cnt_last = Application.Match(tickers(tickerindex), Range("A1:A" & RowCount), 0) + (Application.CountIf(Range("A1:A" & RowCount), tickers(tickerindex)) - 1)
+              
+              tickerEndingPrices(tickerindex) = CSng(Cells(cnt_last, 6).Value)
+           
+            ' Calculate the ticker Return Value
+             tickerValue(tickerindex) = tickerEndingPrices(tickerindex) - tickerStartingPrices(tickerindex)
+            
+       
+       
+            ' Calculate the ticker Index Return
+             tickerReturn(tickerindex) = (tickerEndingPrices(tickerindex) - tickerStartingPrices(tickerindex)) / tickerStartingPrices(tickerindex)
+                       
+
+            '3d Increase the tickerIndex.
+  
+    
+    
+    Next i
+   
+    'Next
+   
+      'Format the output sheet on All Stocks Analysis worksheet
+ 
+   
+     
+   
+    '4) Loop through your arrays to output the Ticker, Total Daily Volume, and Return.
+   ' Worksheets("All Stocks Analysis").Activate
+   
+    For i = 0 To tickerCount
+        Worksheets(yearValue).Range("I" & i + 2).Value = tickers(i)
+        Worksheets(yearValue).Range("J" & i + 2).Value = tickerValue(i)
+        Worksheets(yearValue).Range("K" & i + 2).Value = tickerReturn(i)
+        Worksheets(yearValue).Range("L" & i + 2).Value = tickervolume(i)
+      '  Worksheets(yearValue).Range("E" & i + 4).Value = tickerEndingPrices(i)
+
+    Next i
+   
+    'Formatting
+   
+   ' Worksheets(yearValue).Activate
+   ' Worksheets(yearValue).Range("J3:J").Font.FontStyle = "Bold"
+   ' Worksheets(yearValue).Range("A3:C3").Borders(xlEdgeBottom).LineStyle = xlContinuous
+   ' Worksheets(yearValue).Range("B4:B15").NumberFormat = "#,##0"
+   ' Worksheets(yearValue).Range("C4:C15").NumberFormat = "0.0%"
+   ' Worksheets(yearValue).Columns("B").AutoFit
+
+    dataRowStart = 4
+    dataRowEnd = 15
+    i = 0
+    For i = 2 To tickerCount
+       
+        If Worksheets(yearValue).Cells(i, 10) > 0 Then
+           
+            Worksheets(yearValue).Cells(i, 10).Interior.Color = vbGreen
+           
+        Else
+       
+            Worksheets(yearValue).Cells(i, 10).Interior.Color = vbRed
+           
+        End If
+       
+    Next i
+ 
+    endTime = Timer
+    MsgBox "This code ran in " & (endTime - startTime) & " seconds for the year " & (yearValue)
+
+End Sub
+
+
